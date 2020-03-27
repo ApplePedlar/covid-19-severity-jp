@@ -10,13 +10,15 @@
       :mobile-breakpoint="0"
       :sort-by.sync="sortBy"
       :sort-desc.sync="sortDesc")
-    .grid-caption {{ getGridCaption() }}
-    table.grid(v-if="sortBy && sortBy.length > 0")
-      tr(v-for="row in getGridMapData()")
-        template(v-for="data in row")
-          td(:style="getBackgroundColor(data)")
-            .prefecture {{ data.prefecture }}
-            .value {{ getValue(data) }}
+    .template(v-for="header in tableHeaders")
+      .grid(v-if="header.value !== 'prefecture'")
+        .grid-caption {{ header.text }}
+        table
+          tr(v-for="row in getGridMapData()")
+            template(v-for="data in row")
+              td(:style="getCellStyle(data, header.value)")
+                .prefecture {{ data.prefecture }}
+                .value {{ getValue(data, header.value) }}
     .last-update 最終更新日: {{ lastUpdate }}
     .project-home Project home: 
       a(href="https://github.com/ApplePedlar/covid-19-severity-jp" target="_new") GitHub ApplePedlar/covid-19-severity-jp
@@ -105,46 +107,35 @@ export default {
       }
       return gridMapData
     },
-    getValue (data) {
-      return data[this.sortBy]
+    getValue (data, field) {
+      return data[field]
     },
-    getBackgroundColor (data) {
-      let mean = this.tableData.reduce((acc, cur) => acc + cur[this.sortBy], 0) / this.tableData.length
-      let value = this.getValue(data)
+    getCellStyle (data, field) {
+      let mean = this.tableData.reduce((acc, cur) => acc + cur[field], 0) / this.tableData.length
+      let value = this.getValue(data, field)
 
-      let colorCode = "FFFFFF"
+      let red = 255
+      let green = 255
+      let blue = 255
 
-      if (value >= mean * 1.5) {
-        let n = 127 - parseInt((value - mean * 3 / 2) / (mean / 2) * 128)
-        if (n < 0) {
-          n = 0
+      let textColor = "black"
+
+      if (value >= mean) {
+        blue = 0
+        green = 255 - parseInt((value - mean) / mean * 256)
+        if (green < 0) {
+          red = 255 + green / 4
+          green = 0
+          textColor = "white"
         }
-        let c = n.toString(16).toUpperCase();
-        if (c.length == 1) {
-          c = "0" + c
+        if (red < 0) {
+          red = 0
         }
-        colorCode = "FF" + c + "00"
-      } else if (value >= mean) {
-        let c = (255 - parseInt((value - mean) / (mean / 2) * 128)).toString(16).toUpperCase();
-        if (c.length == 1) {
-          c = "0" + c
-        }
-        colorCode = "FF" + c + "00"
-      } else if (value >= mean / 2) {
-        let c = (127 - parseInt((value - (mean / 2)) / (mean / 2) * 128)).toString(16).toUpperCase();
-        if (c.length == 1) {
-          c = "0" + c
-        }
-        colorCode = "FFFF" + c
       } else {
-        let c = (255 - parseInt(value / (mean / 2) * 128)).toString(16).toUpperCase();
-        if (c.length == 1) {
-          c = "0" + c
-        }
-        colorCode = "FFFF" + c
+        blue = 255 - parseInt(value / mean * 256)
       }
 
-      return "background-color:#" + colorCode
+      return `background-color: rgb(${red}, ${green}, ${blue}); color: ${textColor}`
 
     }
   },
@@ -169,20 +160,24 @@ export default {
   .table
     margin: 30px auto
     border: 1px silver solid
-  table.grid
-    border: 1px solid black
-    width: 100%
-    td
-      border: 1px solid black
-      width: 16%
-      text-align: center
-      padding: 3px 0
-      &.danger
-        background-color: #FF3030
-      &.warn
-        background-color: #FF9090
-      &.alert
-        background-color: #FFFFA0
+  .grid
+    margin: 30px auto
+    .grid-caption
+      font-weight: bold
+    table
+      width: 100%
+      td
+        border: 1px solid black
+        width: 16%
+        text-align: center
+        padding: 3px 0
+        &.danger
+          background-color: #FF3030
+        &.warn
+          background-color: #FF9090
+        &.alert
+          background-color: #FFFFA0
+        font-size: 14px
   .project-home, .data-source, .last-update
     font-size: 12px
 </style>
