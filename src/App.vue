@@ -118,24 +118,17 @@ export default {
       let green = 255
       let blue = 255
 
-      let textColor = "black"
-
       if (value >= mean) {
         blue = 0
-        green = 255 - parseInt((value - mean) / mean * 256)
+        green = blue = 127 - parseInt((value - mean) / mean * 128)
         if (green < 0) {
-          red = 255 + green / 4
-          green = 0
-          textColor = "white"
-        }
-        if (red < 0) {
-          red = 0
+          green = blue = 0
         }
       } else {
-        blue = 255 - parseInt(value / mean * 256)
+        green = blue = 255 - parseInt(value / mean * 128)
       }
 
-      return `background-color: rgb(${red}, ${green}, ${blue}); color: ${textColor}`
+      return `background-color: rgb(${red}, ${green}, ${blue})`
 
     }
   },
