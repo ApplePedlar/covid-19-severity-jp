@@ -42,9 +42,9 @@ export default {
         { text: "累計感染者数", value: "totalPatients" },
         { text: "現在患者数", value: "currentPatients" },
         { text: "累計死亡者数", value: "totalDeaths" },
-        { text: "10万人あたりの累計感染者数", value: "totalPatientsPerPop" },
-        { text: "10万人あたりの現在患者数", value: "currentPatientsPerPop" },
-        { text: "10万人あたりの累計死亡者数", value: "totalDeathsPerPop" }
+        { text: "10万人あたりの累計感染者数", value: "totalPatientsPerPop", sort: (a, b) => (Number(a) - Number(b)) },
+        { text: "10万人あたりの現在患者数", value: "currentPatientsPerPop", sort: (a, b) => (Number(a) - Number(b)) },
+        { text: "10万人あたりの累計死亡者数", value: "totalDeathsPerPop", sort: (a, b) => (Number(a) - Number(b)) }
       ],
       tableData: [],
       populations: populations,
@@ -65,9 +65,9 @@ export default {
           let prefecture = area.name_jp
 
           let population = this.populations[prefecture]
-          let totalPatientsPerPop = Math.round(totalPatients / (population / 100) * 1000) / 1000
-          let totalDeathsPerPop = Math.round(totalDeaths / (population / 100) * 1000) / 1000
-          let currentPatientsPerPop = Math.round(currentPatients / (population / 100) * 1000) / 1000
+          let totalPatientsPerPop = (Math.round(totalPatients / (population / 100) * 1000) / 1000).toFixed(3)
+          let totalDeathsPerPop = (Math.round(totalDeaths / (population / 100) * 1000) / 1000).toFixed(3)
+          let currentPatientsPerPop = (Math.round(currentPatients / (population / 100) * 1000) / 1000).toFixed(3)
           this.tableData.push({
             prefecture: prefecture,
             population: population,
@@ -111,8 +111,8 @@ export default {
       return data[field]
     },
     getCellStyle (data, field) {
-      let mean = this.tableData.reduce((acc, cur) => acc + cur[field], 0) / this.tableData.length
-      let value = this.getValue(data, field)
+      let mean = this.tableData.reduce((acc, cur) => acc + Number(cur[field]), 0) / this.tableData.length
+      let value = Number(this.getValue(data, field))
 
       let red = 255
       let green = 255
