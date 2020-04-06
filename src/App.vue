@@ -1,7 +1,7 @@
 <template lang="pug">
   .top
     h1 新型コロナウィルス都道府県別脅威度
-    .about 新型コロナウィルスの人口10万人あたりの各指標の都道府県別のリストです。
+    .about 新型コロナウィルスの人口10万人あたりの各指標の都道府県別のリストです。<br>最終更新日: {{ lastUpdate }}
     v-data-table.table(
       :headers="tableHeaders",
       :items="tableData",
@@ -19,6 +19,7 @@
               td(:style="getCellStyle(data, header.value)")
                 .prefecture {{ data.prefecture }}
                 .value {{ getValue(data, header.value) }}
+    .note ※新規感染者増加率: 直近7日間の新規感染者数がその前の7日間の数の何倍か
     .last-update 最終更新日: {{ lastUpdate }}
     .project-home Project home: 
       a(href="https://github.com/ApplePedlar/covid-19-severity-jp" target="_new") GitHub ApplePedlar/covid-19-severity-jp
@@ -34,16 +35,19 @@ import populations from "./populations.json"
 export default {
   data () {
     return {
-      sourceUrl: 'https://www.stopcovid19.jp/data/covid19japan.json',
+      sourceUrl: 'https://www.stopcovid19.jp/data/covid19japan-all.json',
       sortBy: 'currentPatientsPerPop',
       sortDesc: true,
       tableHeaders: [
         { text: "都道府県", value: "prefecture", width: "90px", sortable: false },
         { text: "累計感染者数", value: "totalPatients" },
         { text: "現在患者数", value: "currentPatients" },
+        { text: "1週間の新規患者数", value: "patientsPerWeek" },
         { text: "累計死亡者数", value: "totalDeaths" },
         { text: "10万人あたりの累計感染者数", value: "totalPatientsPerPop", sort: (a, b) => (Number(a) - Number(b)) },
         { text: "10万人あたりの現在患者数", value: "currentPatientsPerPop", sort: (a, b) => (Number(a) - Number(b)) },
+        { text: "10万人あたりの1週間の新規感染者数", value: "patientsPerWeekPerPop", sort: (a, b) => (Number(a) - Number(b)) },
+        { text: "新規感染者増加率(※)", value: "increaseRatioOfPatients", sort: (a, b) => (Number(a) - Number(b)) },
         { text: "10万人あたりの累計死亡者数", value: "totalDeathsPerPop", sort: (a, b) => (Number(a) - Number(b)) }
       ],
       tableData: [],
@@ -55,30 +59,45 @@ export default {
     axios
       .get(this.sourceUrl)
       .then(response => {
-        let records = response.data
-        this.lastUpdate = records.lastUpdate
-        let areas = records.area
-        areas.forEach(area => {
+        let allRecords = response.data
+        let latestRecords = allRecords[allRecords.length - 1]
+        let oneWeekAgoRecords = allRecords[allRecords.length - 8]
+        let twoWeekAgoRecords = allRecords[allRecords.length - 15]
+        this.lastUpdate = latestRecords.lastUpdate
+        for (let i = 0; i < latestRecords.area.length; i++) {
+          let area = latestRecords.area[i]
           let totalPatients = area.npatients
+          let oneWeekAgoArea = oneWeekAgoRecords.area[i]
+          let twoWeekAgoArea = twoWeekAgoRecords.area[i]
           let totalDeaths = area.ndeaths
           let currentPatients = area.ncurrentpatients
+          let patientsPerWeek = totalPatients - oneWeekAgoArea.npatients
+          let patientsPerWeek2 = oneWeekAgoArea.npatients - twoWeekAgoArea.npatients
           let prefecture = area.name_jp
 
           let population = this.populations[prefecture]
           let totalPatientsPerPop = (Math.round(totalPatients / (population / 100) * 1000) / 1000).toFixed(3)
-          let totalDeathsPerPop = (Math.round(totalDeaths / (population / 100) * 1000) / 1000).toFixed(3)
           let currentPatientsPerPop = (Math.round(currentPatients / (population / 100) * 1000) / 1000).toFixed(3)
+          let patientsPerWeekPerPop = (Math.round(patientsPerWeek / (population / 100) * 1000) / 1000).toFixed(3)
+          let increaseRatioOfPatients = "";
+          if (patientsPerWeek2 > 0) {
+            increaseRatioOfPatients = (Math.round(patientsPerWeek / patientsPerWeek2 * 1000) / 1000).toFixed(3)
+          }
+          let totalDeathsPerPop = (Math.round(totalDeaths / (population / 100) * 1000) / 1000).toFixed(3)
           this.tableData.push({
             prefecture: prefecture,
             population: population,
             totalPatients: totalPatients,
+            patientsPerWeek: patientsPerWeek,
             totalDeaths: totalDeaths,
             currentPatients: currentPatients,
             totalPatientsPerPop: totalPatientsPerPop,
-            totalDeathsPerPop: totalDeathsPerPop,
-            currentPatientsPerPop: currentPatientsPerPop
+            currentPatientsPerPop: currentPatientsPerPop,
+            patientsPerWeekPerPop: patientsPerWeekPerPop,
+            increaseRatioOfPatients: increaseRatioOfPatients,
+            totalDeathsPerPop: totalDeathsPerPop
           })
-        })
+        }
       })
   },
   methods: {
@@ -171,6 +190,6 @@ export default {
         &.alert
           background-color: #FFFFA0
         font-size: 14px
-  .project-home, .data-source, .last-update
+  .project-home, .data-source, .last-update, .note
     font-size: 12px
 </style>
